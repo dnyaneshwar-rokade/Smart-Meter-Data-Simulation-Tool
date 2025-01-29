@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Date</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        .title{
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 40px;
+            text-align: center;
+            margin-bottom: 40;
+        }
+        .container {
+            max-width: 700px;
+            margin-top: 50px;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            font-family: 'Arial', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #343a40;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            color: #6c757d;
+        }
+        .form-control {
+            border-radius: 5px;
+            box-shadow: none;
+        }
+        .btn-primary, .btn-success, .btn-info {
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-success:hover, .btn-info:hover {
+            background-color: #28a745;
+        }
+        .table thead {
+            background-color: #343a40;
+            color: #ffffff;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: #f2f2f2;
+        }
+        .alert {
+            font-weight: bold;
+        }
+        .fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        // Initialize the DataTable on the table after it's fully populated
+        const table = $('.table').DataTable({
+            pageLength: 100,
+            scrollY: "400px",
+            scrollCollapse: true,
+            paging: true,
+        });
+
+        // Function to download CSV
+        window.downloadCSV = function(event) {
+            event.preventDefault(); // Prevent the default behavior
+
+            const rows = [];
+            const headers = ["Date", "Reading", "Value", "Condition"];
+            rows.push(headers.join(",")); // Join headers with commas
+
+            // Loop through each row and get data
+            const tableData = table.rows().data();
+
+            tableData.each(function(dataRow) {
+                const date = new Date(dataRow[0].trim()).toLocaleString('en-GB'); // Format date correctly
+                const reading = parseFloat(dataRow[1].replace(/,/g, '')) || 0; // Parse reading value
+                const value = parseFloat(dataRow[2].replace(/,/g, '')) || 0;  // Parse value
+                const condition = dataRow[3].trim();  // Trim the condition string
+
+                // Escape any commas inside the values for proper CSV formatting
+                rows.push(`"${date}","${reading}","${value}","${condition}"`);
+            });
+
+            // Join all rows with a newline
+            const csvContent = rows.join("\n");
+
+            // Trigger the CSV download
+            const blob = new Blob([csvContent], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "search_results.csv";  // Set default download name
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url); // Cleanup the URL object
+        };
+
+        // Function to calculate totals
+        window.calculateTotals = function() {
+            let totalReading = 0;
+            let totalValue = 0;
+            const tableData = table.rows().data();
+    
+            tableData.each(function(dataRow) {
+                const reading = dataRow[1].trim() ? parseFloat(dataRow[1].replace(/,/g, '')) : 0;
+                const value = parseFloat(dataRow[2].replace(/,/g, '')) || 0;
+    
+                totalReading += reading;
+                totalValue += value;
+            });
+    
+            // Retrieve and parse dates from input fields
+            const startDateStr = document.getElementById("start_date").value;
+            const endDateStr = document.getElementById("end_date").value;
+    
+            let dateRangeText = "N/A";
+            if (startDateStr && endDateStr) {
+                const startDate = new Date(startDateStr);
+                const endDate = new Date(endDateStr);
+                    
+                // Calculate difference in days
+                const differenceInTime = endDate.getTime() - startDate.getTime();
+                const differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24));
+    
+                dateRangeText = differenceInDays + " days";
+            }
+    
+            document.getElementById("totalResults").innerHTML = `
+                <table class="table table-bordered mt-4">
+                    <thead>
+                        <tr>
+                            <th>Total Reading Counts</th>
+                            <th>Total Value In Rupees</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${totalReading.toFixed(2)}</td>
+                            <td>${totalValue.toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+        };
+
+    });
+    </script>
+</head>
+<body>
+    <div class="container fade-in">
+        <h1 class="title">Welcome To</h1>
+        <h2>Meter Data Simulation Tool</h2>
+        <h5 class="text-center">Takes Starting Date and Ending Date as Input</h5>
+        <form action="/" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="start_date">Enter Start Date</label>
+                <input type="text" class="form-control" id="start_date" name="Start Date" placeholder="YYYY-MM-DD" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date">Enter End Date</label>
+                <input type="text" class="form-control" id="end_date" name="end date" placeholder="YYYY-MM-DD" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Search</button>
+        </form>
+
+        {% if records %}
+        <div class="mt-5 fade-in">
+            <h3>Search Results</h3>
+            <table class="table table-striped mt-3">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Reading</th>
+                        <th>Value</th>
+                        <th>Condition</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record.date_time|date:"Y-m-d H:i:s" }}</td>
+                        <td>{{ record.reading }}</td>
+                        <td>{{ record.value }}</td>
+                        <td>{{ record.meter_condition }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="text-center">
+                <button class="btn btn-success mt-3 mr-2" onclick="downloadCSV(event)">Download CSV</button>
+                <button class="btn btn-success mt-3" onclick="calculateTotals()">Calculate Totals</button>
+            </div>            
+            <div id="totalResults" class="mt-3"></div>
+        </div>
+        {% endif %}
+
+        <!-- New Button to Go to Prediction Page -->
+        <div class="text-center mt-5">
+            <a href="{% url 'show_prediction' %}" class="btn btn-info">Go to Prediction Page</a>
+        </div>
+    </div>
+</body>
+</html>

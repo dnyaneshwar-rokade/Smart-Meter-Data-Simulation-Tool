@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Data</title>
+    <!-- Bootstrap CDN for additional styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+            font-weight: bold; /* Bold heading */
+        }
+        .return-home-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .return-home-btn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Form and button alignment */
+        .filter-form {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+        }
+        .filter-form input,
+        .filter-form button {
+            width: 100%; /* Increase the width of the input fields */
+            max-width: 500px; /* Limit max width */
+            margin-bottom: 15px;
+        }
+        .filter-form label {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .filter-form button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .filter-form button:hover {
+            background-color: #45a049;
+        }
+
+        /* Table styling */
+        table {
+            width: 80%;
+            margin: 30px auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #e1f5fe;
+        }
+
+        /* Pagination styling */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination a {
+            margin: 0 5px;
+            padding: 8px 16px;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            color: #333;
+        }
+        .pagination a:hover {
+            background-color: #ddd;
+        }
+        .pagination span {
+            margin: 0 5px;
+            padding: 8px 16px;
+        }
+
+        /* Download button */
+        .download-btn {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .download-btn button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .download-btn button:hover {
+            background-color: #45a049;
+        }
+
+        /* No Data Available styling */
+        .no-data-message {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #ff5722;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Return to Home Button -->
+    <a href="{% url 'home' %}" class="return-home-btn">Go to Home</a>
+
+    <h1>Predict Meter Reading</h1>
+
+    <!-- Date Range Filter Form -->
+    <div class="filter-form">
+        <form method="get" action=".">
+            <div class="mb-3">
+                <label for="start_date" class="form-label">Start Date (YYYY-MM-DD HH:MM:SS):</label>
+                <input type="text" name="start_date" class="form-control" placeholder="2024-11-01 00:00:00" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="end_date" class="form-label">End Date (YYYY-MM-DD HH:MM:SS):</label>
+                <input type="text" name="end_date" class="form-control" placeholder="2024-11-30 23:59:59" required>
+            </div>
+
+            <button type="submit" class="btn btn-success">Show Predictions</button>
+        </form>
+    </div>
+
+    <!-- Prediction Data Table -->
+    {% if prediction_data %}
+        <table id="predictionTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Predicted Reading (yhat)</th>
+                    <th>Lower Bound (yhat_lower)</th>
+                    <th>Upper Bound (yhat_upper)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in prediction_data %}
+                    <tr>
+                        <td>{{ row.ds }}</td>
+                        <td>{{ row.yhat|floatformat:2 }}</td>
+                        <td>{{ row.yhat_lower|floatformat:2 }}</td>
+                        <td>{{ row.yhat_upper|floatformat:2 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="no-data-message">No Data available for the selected date range.</p>
+    {% endif %}
+
+    <!-- Server-Side CSV Download Button -->
+    <div class="download-btn">
+        <a href="{% url 'download_csv' %}?start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}">
+            <button class="btn btn-success">Download CSV</button>
+        </a>
+    </div>
+
+    <!-- Bootstrap JS and Popper.js for any additional functionality (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+
+</body>
+</html>
